@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuVector Support Bundle Analyser</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the Inter font and overall layout */
+        html, body {
+            height: 100%; /* Ensure html and body take full height */
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent overall page scroll, let flex children manage */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex; /* Ensure body is a flex container */
+            flex-direction: column; /* Stack header and main content vertically */
+            background-color: #121212; /* Deeper dark background */
+            color: #e0e0e0; /* Lighter text for contrast */
+        }
+
+        /* Custom scrollbar styles */
+        .sidebar, .content-area-scrollable, pre, table { /* Changed .content-area to .content-area-scrollable */
+            scrollbar-width: thin; /* Firefox */
+            scrollbar-color: #4a5568 #202020; /* Thumb and Track for dark theme */
+        }
+        .sidebar::-webkit-scrollbar, .content-area-scrollable::-webkit-scrollbar, pre::-webkit-scrollbar, table::-webkit-scrollbar {
+            width: 8px; /* Chrome, Safari, Edge */
+            height: 8px; /* For horizontal scrollbars */
+        }
+        .sidebar::-webkit-scrollbar-track, .content-area-scrollable::-webkit-scrollbar-track, pre::-webkit-scrollbar-track, table::-webkit-scrollbar-track {
+            background: #202020; /* Dark track color */
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb, .content-area-scrollable::-webkit-scrollbar-thumb, pre::-webkit-scrollbar-thumb, table::-webkit-scrollbar-thumb {
+            background-color: #4a5568; /* Darker gray thumb */
+            border-radius: 10px;
+            border: 2px solid #202020; /* Padding around thumb */
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover, .content-area-scrollable::-webkit-scrollbar-thumb:hover, pre::-webkit-scrollbar-thumb:hover, table::-webkit-scrollbar-thumb:hover {
+            background-color: #64748b; /* Lighter gray on hover */
+        }
+
+        .sidebar {
+            overflow-y: auto; /* Enable vertical scrolling for sidebar */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+
+        /* Main content area now handles its own scrolling */
+        .main-content-flex-container { /* New container for main content area */
+            flex: 1; /* Allows it to grow and shrink */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Important: prevents this container from causing page scroll */
+        }
+
+        .content-area-scrollable { /* This is the actual scrollable content div */
+            flex: 1; /* Allows it to take remaining vertical space */
+            overflow-y: auto; /* Enables scrolling for the content itself */
+            -webkit-overflow-scrolling: touch;
+            padding: 1.5rem; /* Matches p-6 from section, but now applied to inner scrollable div */
+        }
+
+        /* Style for pre-formatted JSON output */
+        pre {
+            white-space: pre-wrap; /* Wrap long lines */
+            word-wrap: break-word; /* Break words to fit */
+            background-color: #202020; /* Darker background for code blocks */
+            color: #a0aec0; /* Light text color for code */
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+            font-size: 0.875rem; /* sm text */
+            line-height: 1.5;
+        }
+
+        /* Custom styling for active sidebar link */
+        .sidebar a.active {
+            background-color: #059669; /* Emerald-600 */
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Table specific styles for a cleaner look */
+        table {
+            border-collapse: separate; /* Allows border-radius on cells */
+            border-spacing: 0;
+        }
+        table th, table td {
+            border-bottom: 1px solid #374151; /* Darker border for rows */
+        }
+        table th:first-child, table td:first-child {
+            border-left: 1px solid #374151;
+        }
+        table th:last-child, table td:last-child {
+            border-right: 1px solid #374151;
+        }
+        table thead th {
+            border-top: 1px solid #374151;
+        }
+        table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        table thead tr:first-child th:first-child {
+            border-top-left-radius: 0.5rem;
+        }
+        table thead tr:first-child th:last-child {
+            border-top-right-radius: 0.5rem;
+        }
+        table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 0.5rem;
+        }
+        table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 0.5rem;
+        }
+        /* Clickable row style */
+        table tbody tr.clickable-row:hover {
+            background-color: #2d3748; /* Darker gray on hover */
+            cursor: pointer;
+        }
+
+        /* Fixed height for table containers */
+        .fixed-height-table-container {
+            max-height: 40vh; /* Approximately 5-6 rows, adjust as needed */
+            overflow-y: auto;
+            width: 100%;
+            margin-top: 1rem; /* Add some space above the table */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Top Header Bar -->
+    <header class="bg-gray-800 shadow-lg p-4 flex items-center justify-between flex-shrink-0 rounded-b-lg">
+        <div class="flex items-center">
+            <!-- NeuVector-like icon (using Lucide React for web page icons) -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield-check text-emerald-400 mr-3">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>
+            </svg>
+            <h1 class="text-2xl font-bold text-emerald-400">NeuVector Support Bundle Analyser</h1>
+        </div>
+        <div class="relative w-1/3">
+            <input type="text" id="search-input" placeholder="Filter keys..." class="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-600 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" onkeyup="filterKeys()">
+            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+    </header>
+
+    <!-- Main layout: Sidebar and Content -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar for Navigation -->
+        <aside class="sidebar w-64 bg-gray-800 text-white p-4 flex-shrink-0 rounded-r-lg shadow-lg">
+            <nav class="space-y-2">
+                <!-- Dashboard Overview Button -->
+                <a href="#" id="dashboard-overview-btn" class="block py-2 px-3 rounded-md text-gray-300 hover:bg-emerald-700 hover:text-white transition duration-150 ease-in-out font-bold" data-display-name="Dashboard Overview" data-api-key="/v1/system/summary">Dashboard Overview</a>
+
+                <!-- Assets Dropdown -->
+                <div class="relative">
+                    <button class="w-full text-left py-2 px-3 rounded-md text-gray-300 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out focus:outline-none flex justify-between items-center" onclick="toggleDropdown('assets-dropdown')">
+                        Assets
+                        <svg class="w-4 h-4 transform transition-transform duration-200" id="assets-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="assets-dropdown" class="hidden pl-4 mt-1 space-y-1">
+                        <!-- Asset sub-items -->
+                        <a href="#" id="platforms-btn" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Platforms" data-api-key="/v1/scan/platform">Platforms</a>
+                        <a href="#" id="namespaces-btn" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Namespaces" data-api-key="/v1/domain">Namespaces</a>
+                        <a href="#" id="nodes-btn" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Nodes" data-api-key="/v1/host">Nodes</a>
+                        <a href="#" id="containers-btn" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Containers" data-api-key="/v2/workload?view=pod">Containers</a>
+                        <a href="#" id="registries-btn" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Registries" data-api-key="/v1/scan/registry">Registries</a>
+                        <a href="#" id="sigstore-verifiers-btn" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="System Components" data-api-key="/v1/internal/system">System Components</a>
+                    </div>
+                </div>
+
+                <!-- Policy Dropdown -->
+                <div class="relative">
+                    <button class="w-full text-left py-2 px-3 rounded-md text-gray-300 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out focus:outline-none flex justify-between items-center" onclick="toggleDropdown('policy-dropdown')">
+                        Policy
+                        <svg class="w-4 h-4 transform transition-transform duration-200" id="policy-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="policy-dropdown" class="hidden pl-4 mt-1 space-y-1">
+                        <a href="#" id="groups-btn" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-emerald-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Groups" data-api-key="/v1/group">Groups</a>
+                        <!-- Other policy sub-items will go here -->
+                        <a href="#" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm">Network Rules</a>
+                        <a href="#" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm">Response Rules</a>
+                    </div>
+                </div>
+
+                <!-- Security Risks Dropdown -->
+                <div class="relative">
+                    <button class="w-full text-left py-2 px-3 rounded-md text-gray-300 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out focus:outline-none flex justify-between items-center" onclick="toggleDropdown('security-risks-dropdown')">
+                        Security Risks
+                        <svg class="w-4 h-4 transform transition-transform duration-200" id="security-risks-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="security-risks-dropdown" class="hidden pl-4 mt-1 space-y-1">
+                        <!-- Security Risks sub-items will go here -->
+                        <a href="#" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Vulnerabilities" data-api-key="/v1/vulnerability/profile">Vulnerabilities</a>
+                        <a href="#" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Compliance" data-api-key="/v1/compliance/profile">Compliance</a>
+                    </div>
+                </div>
+
+                <!-- Notifications Dropdown -->
+                <div class="relative">
+                    <button class="w-full text-left py-2 px-3 rounded-md text-gray-300 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out focus:outline-none flex justify-between items-center" onclick="toggleDropdown('notifications-dropdown')">
+                        Notifications
+                        <svg class="w-4 h-4 transform transition-transform duration-200" id="notifications-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="notifications-dropdown" class="hidden pl-4 mt-1 space-y-1">
+                        <!-- Notifications sub-items will go here -->
+                        <a href="#" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Alerts" data-api-key="/v1/system/alerts">Alerts</a>
+                        <a href="#" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Incidents" data-api-key="/v1/log/incident">Incidents</a>
+                        <a href="#" class="block py-2 px-3 rounded-md text-gray-400 hover:bg-gray-700 hover:text-white transition duration-150 ease-in-out text-sm" data-display-name="Audit Logs" data-api-key="/v1/log/audit">Audit Logs</a>
+                    </div>
+                </div>
+
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content-flex-container flex-1 p-6"> <!-- Use new flex container class -->
+            <header class="mb-6 pb-4 border-b border-gray-700">
+                <h2 class="text-3xl font-extrabold text-gray-100" id="current-key-title">Dashboard Overview</h2>
+            </header>
+
+            <section class="flex-1 bg-gray-800 rounded-lg shadow-md overflow-hidden"> <!-- overflow-hidden to contain inner scrollable -->
+                <div id="filter-controls" class="mb-6 p-4 bg-gray-700 rounded-lg shadow-inner hidden">
+                    <h3 class="text-xl font-semibold text-emerald-300 mb-4">Group Filters</h3>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label for="filter-domain" class="block text-gray-300 text-sm font-medium mb-1">Namespace:</label>
+                            <input type="text" id="filter-domain" class="w-full p-2 rounded-md bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-1 focus:ring-emerald-500" placeholder="e.g., default" onkeyup="debounceGroupFilters()">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="content-display" class="content-area-scrollable"> <!-- Apply scrollable class here -->
+                    <p class="text-gray-400">Select a category from the sidebar to view its data.</p>
+                </div>
+                <div id="loading-indicator" class="hidden text-center text-emerald-500 mt-8">
+                    <p>Loading data...</p>
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto mt-4"></div>
+                </div>
+                <div id="error-message" class="hidden text-center text-red-500 mt-8">
+                    <p>Error loading data. Please try again or check the server logs.</p>
+                </div>
+
+                <!-- New section for displaying labels -->
+                <div id="labels-display-section" class="hidden mt-6 p-4 bg-gray-700 rounded-lg shadow-inner">
+                    <h3 class="text-xl font-semibold text-emerald-300 mb-4">Labels for Selected Namespace</h3>
+                    <div id="labels-content" class="text-gray-300 text-sm"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const currentKeyTitle = document.getElementById('current-key-title');
+        const contentDisplay = document.getElementById('content-display');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+        const searchInput = document.getElementById('search-input'); // Main search input for keys
+
+        const filterControls = document.getElementById('filter-controls');
+        const filterDomainInput = document.getElementById('filter-domain');
+        
+        const labelsDisplaySection = document.getElementById('labels-display-section');
+        const labelsContent = document.getElementById('labels-content');
+
+        let allKeys = []; // This will still hold all raw API keys for the top search bar
+        let currentSelectedKey = null;
+        let groupFilterTimeout = null; // For debouncing group filters
+
+        // --- New Navigation Elements ---
+        const dashboardOverviewBtn = document.getElementById('dashboard-overview-btn');
+        const groupsBtn = document.getElementById('groups-btn');
+        // New Asset Buttons
+        const platformsBtn = document.getElementById('platforms-btn');
+        const namespacesBtn = document.getElementById('namespaces-btn');
+        const nodesBtn = document.getElementById('nodes-btn');
+        const containersBtn = document.getElementById('containers-btn');
+        const registriesBtn = document.getElementById('registries-btn');
+        const sigstoreVerifiersBtn = document.getElementById('sigstore-verifiers-btn');
+        const systemComponentsBtn = document.getElementById('system-components-btn');
+
+        // Map API keys to human-readable display names
+        const apiToDisplayNameMap = {
+            '/v1/system/summary': 'Dashboard Overview',
+            '/v1/scan/platform': 'Platforms',
+            '/v1/domain': 'Namespaces',
+            '/v1/host': 'Nodes',
+            '/v2/workload?view=pod': 'Containers',
+            '/v1/scan/registry': 'Registries',
+            '/v1/scan/sigstore/root_of_trust?with_verifiers=true': 'Sigstore Verifiers',
+            '/v1/internal/system': 'System Components',
+            '/v1/group': 'Groups',
+            '/v1/policy/rule': 'Network Rules', // Example, adjust if API key is different
+            '/v1/response/rule': 'Response Rules', // Example, adjust if API key is different
+            '/v1/vulnerability/profile': 'Vulnerabilities', // Example
+            '/v1/compliance/profile': 'Compliance', // Example
+            '/v1/log/alert': 'Alerts', // Example, assuming alerts are under this path
+            '/v1/log/incident': 'Incidents', // Example
+            '/v1/log/audit': 'Audit Logs' // Example
+        };
+
+
+        // Dropdown toggle function
+        function toggleDropdown(id) {
+            const dropdown = document.getElementById(id);
+            const arrow = document.getElementById(id.replace('-dropdown', '-arrow'));
+            dropdown.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        // Function to set active state in the new navigation
+        const setActiveNavItem = (elementId) => {
+            // Remove active from all previous active items
+            document.querySelectorAll('.sidebar a.active, .sidebar button.active').forEach(el => {
+                el.classList.remove('active', 'bg-emerald-600');
+            });
+            // Add active to the new item
+            const newActiveElement = document.getElementById(elementId);
+            if (newActiveElement) {
+                newActiveElement.classList.add('active', 'bg-emerald-600');
+            }
+        };
+
+        const showLoading = () => {
+            loadingIndicator.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            contentDisplay.innerHTML = '';
+            labelsDisplaySection.classList.add('hidden'); // Hide labels section when loading new data
+        };
+
+        const hideLoading = () => {
+            loadingIndicator.classList.add('hidden');
+        };
+
+        const showError = (message = 'Error loading data.') => {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            hideLoading();
+        };
+
+        // Helper to map mode string to a single char and color
+        const getModeDisplay = (mode) => {
+            let char = '';
+            let bgColor = 'bg-gray-600'; // Default dark background
+            let textColor = 'text-gray-300'; // Default light text
+
+            switch (mode.toLowerCase()) {
+                case 'discover':
+                    char = 'D';
+                    bgColor = 'bg-yellow-700'; // Darker yellow
+                    textColor = 'text-yellow-300'; // Lighter yellow
+                    break;
+                case 'monitor':
+                    char = 'M';
+                    bgColor = 'bg-blue-700'; // Darker blue
+                    textColor = 'text-blue-300'; // Lighter blue
+                    break;
+                case 'protect':
+                    char = 'P';
+                    bgColor = 'bg-red-700'; // Darker red
+                    textColor = 'text-red-300'; // Lighter red
+                    break;
+                default:
+                    char = '-'; // Unknown or not set
+                    break;
+            }
+            return `<span class="inline-flex items-center justify-center w-6 h-6 rounded-sm ${bgColor} ${textColor} text-xs font-bold">${char}</span>`;
+        };
+
+        // Anchor icon SVG for Zero-Drift
+        const anchorIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400 ml-1 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><path d="M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>`;
+
+
+        const createTableHtml = (data, headers, rowClickHandler = null) => {
+            if (!data || data.length === 0) {
+                return '<p class="text-gray-400">No data available.</p>';
+            }
+
+            const displayHeaders = headers;
+
+            let tableHtml = `
+                <div class="fixed-height-table-container rounded-md shadow-inner"> <!-- Apply fixed-height-table-container here -->
+                    <table class="min-w-full bg-gray-700 text-gray-300">
+                        <thead class="bg-gray-600 text-gray-100 uppercase text-xs">
+                            <tr>
+            `;
+            displayHeaders.forEach(header => {
+                let displayHeaderName = header;
+                if (header === 'domain') {
+                    displayHeaderName = 'namespace';
+                } else if (header === 'policy_profile_mode_display') {
+                    displayHeaderName = 'Policy Mode (Network, Process)';
+                } else if (header === 'type') {
+                    displayHeaderName = 'Type';
+                } else if (header === 'platform') { // Specific for Platforms table
+                    displayHeaderName = 'Name';
+                } else if (header === 'high') { // Specific for Platforms table
+                    displayHeaderName = 'High';
+                } else if (header === 'medium') { // Specific for Platforms table
+                    displayHeaderName = 'Medium';
+                } else if (header === 'scanned_at') { // Specific for Platforms table
+                    displayHeaderName = 'Scanned At';
+                } else if (header === 'version') { // Specific for Platforms table
+                    displayHeaderName = 'Version';
+                } else if (header === 'status') { // Specific for Platforms table
+                    displayHeaderName = 'Status';
+                } else if (header === 'workloads') { // Specific for Namespaces table
+                    displayHeaderName = 'Total Workloads';
+                } else if (header === 'running_workloads') { // Specific for Namespaces table
+                    displayHeaderName = 'Running Workloads';
+                } else if (header === 'running_pods') { // Specific for Namespaces table
+                    displayHeaderName = 'Running Pods';
+                } else if (header === 'services') { // Specific for Namespaces table
+                    displayHeaderName = 'Services';
+                }
+                tableHtml += `<th class="py-3 px-4 text-left">${displayHeaderName.replace(/_/g, ' ').toUpperCase()}</th>`;
+            });
+            tableHtml += `
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-600">
+            `;
+            data.forEach(item => {
+                // Add clickable-row class and data-item attribute if rowClickHandler is provided
+                const rowClass = rowClickHandler ? 'clickable-row' : '';
+                const dataItemAttr = rowClickHandler ? `data-item='${JSON.stringify(item)}'` : '';
+                tableHtml += `<tr class="${rowClass}" ${dataItemAttr}>`;
+                displayHeaders.forEach(header => {
+                    let cellContent = '';
+
+                    if (header === 'policy_profile_mode_display') {
+                        const networkMode = item.policy_mode || '';
+                        const profileMode = item.profile_mode || '';
+                        const zeroDrift = item.zero_drift_enabled === true;
+                        const isNvIpGroup = item.name && item.name.startsWith('nv.ip.');
+
+                        let networkDisplay = '';
+                        let processDisplay = '';
+
+                        if (!isNvIpGroup) {
+                            networkDisplay = getModeDisplay(networkMode);
+                            processDisplay = getModeDisplay(profileMode);
+                        }
+                        
+                        const zeroDriftIcon = zeroDrift ? anchorIcon : '';
+
+                        cellContent = `<div class="flex items-center space-x-1">${networkDisplay} ${processDisplay} ${zeroDriftIcon}</div>`;
+                    } else if (header === 'type') {
+                        cellContent = item.learned === true ? 'Learned' : 'User Created';
+                    } else if (header === 'platform') {
+                        cellContent = item.platform || '';
+                    } else if (header === 'version') {
+                        cellContent = item.version || ''; 
+                    } else if (header === 'status') {
+                        cellContent = item.status || '';
+                    } else if (header === 'high') {
+                        cellContent = item.high !== undefined ? item.high.toString() : '0';
+                    } else if (header === 'medium') {
+                        cellContent = item.medium !== undefined ? item.medium.toString() : '0';
+                    } else if (header === 'scanned_at') {
+                        cellContent = item.scanned_at || '';
+                    } else if (header === 'name') {
+                        cellContent = item.name || '';
+                    } else if (header === 'workloads') {
+                        cellContent = item.workloads !== undefined ? item.workloads.toString() : '0';
+                    } else if (header === 'running_workloads') {
+                        cellContent = item.running_workloads !== undefined ? item.running_workloads.toString() : '0';
+                    } else if (header === 'running_pods') {
+                        cellContent = item.running_pods !== undefined ? item.running_pods.toString() : '0';
+                    } else if (header === 'services') {
+                        cellContent = item.services !== undefined ? item.services.toString() : '0';
+                    }
+                    else {
+                        let rawContent = item[header];
+                        if (typeof rawContent === 'object' && rawContent !== null) {
+                            cellContent = JSON.stringify(rawContent);
+                        } else {
+                            cellContent = rawContent || '';
+                        }
+                    }
+                    tableHtml += `<td class="py-2 px-4 whitespace-nowrap">${cellContent}</td>`;
+                });
+                tableHtml += `</tr>`;
+            });
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            return tableHtml;
+        };
+
+        // Function to display labels for a clicked domain
+        const displayDomainLabels = (domainItem) => {
+            labelsContent.innerHTML = ''; // Clear previous labels
+            labelsDisplaySection.classList.remove('hidden'); // Show the section
+
+            if (domainItem.labels && typeof domainItem.labels === 'object') {
+                let labelsHtml = '<ul class="list-disc list-inside space-y-1">';
+                for (const labelKey in domainItem.labels) {
+                    labelsHtml += `<li><span class="font-semibold text-emerald-200">${labelKey}:</span> ${domainItem.labels[labelKey]}</li>`;
+                }
+                labelsHtml += '</ul>';
+                labelsContent.innerHTML = labelsHtml;
+            } else {
+                labelsContent.innerHTML = '<p class="text-gray-400">No labels found for this namespace.</p>';
+            }
+        };
+
+
+        const fetchAndDisplayData = async (key, filters = {}) => {
+            showLoading();
+            currentKeyTitle.textContent = apiToDisplayNameMap[key] || key;
+            currentSelectedKey = key;
+
+            // Set active state for the clicked navigation item
+            document.querySelectorAll('.sidebar a[data-api-key], .sidebar button').forEach(el => {
+                el.classList.remove('active', 'bg-emerald-600');
+            });
+            const newActiveElement = document.querySelector(`[data-api-key="${CSS.escape(key)}"]`) || document.getElementById('dashboard-overview-btn');
+            if (newActiveElement) {
+                newActiveElement.classList.add('active', 'bg-emerald-600');
+            }
+
+
+            if (key === '/v1/group' || key === '/v1/domain') { // Show filter controls for groups and namespaces
+                filterControls.classList.remove('hidden');
+                // Adjust filter label based on selected key
+                document.querySelector('#filter-controls h3').textContent = 
+                    key === '/v1/group' ? 'Group Filters' : 'Namespace Filters';
+                document.querySelector('label[for="filter-domain"]').textContent = 
+                    key === '/v1/group' ? 'Namespace:' : 'Name:'; // Adjust label for domain filter
+                filterDomainInput.placeholder = 
+                    key === '/v1/group' ? 'e.g., default' : 'e.g., openshift'; // Adjust placeholder
+            } else {
+                filterControls.classList.add('hidden');
+            }
+
+            try {
+                let url = `/api/data/${encodeURIComponent(key)}`; // Relative URL
+                const params = new URLSearchParams();
+
+                if (key === '/v1/group' || key === '/v1/domain') { // Apply domain filter for both groups and domains
+                    if (filters.domain) params.append('domain', filters.domain);
+                }
+
+                if (params.toString()) {
+                    url += '?' + params.toString();
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                let formattedHtml = '';
+                let tableHeaders = []; // Define headers based on the key
+
+                // Hide labels section by default for new data loads
+                labelsDisplaySection.classList.add('hidden');
+
+                if (key === 'Dashboard Overview' || key === '/v1/system/summary') {
+                    const summaryData = data;
+                    if (summaryData && typeof summaryData === 'object') {
+                        formattedHtml += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-gray-300">';
+                        for (const prop in summaryData) {
+                            formattedHtml += `
+                                <div class="bg-gray-700 p-4 rounded-lg shadow-inner border border-gray-600">
+                                    <h3 class="font-semibold text-emerald-300 text-lg mb-2">${prop.replace(/_/g, ' ').toUpperCase()}:</h3>
+                                    <p class="text-2xl font-bold text-emerald-200">${JSON.stringify(summaryData[prop], null, 2).replace(/"/g, '')}</p>
+                                </div>
+                            `;
+                        }
+                        formattedHtml += '</div>';
+                    } else {
+                        formattedHtml = '<p class="text-gray-400">Dashboard data not available or malformed.</p>';
+                    }
+                }
+                else if (key.startsWith('/v1/system/alerts') && Array.isArray(data)) {
+                    tableHeaders = ['id', 'level', 'name', 'count', 'last_occurred', 'message'];
+                    formattedHtml = createTableHtml(data, tableHeaders);
+                }
+                else if (key.startsWith('/v1/host') && Array.isArray(data)) {
+                    tableHeaders = ['id', 'name', 'os', 'kernel_version', 'platform', 'status', 'policy_mode'];
+                    formattedHtml = createTableHtml(data, tableHeaders);
+                }
+                else if (key.startsWith('/v2/workload') && Array.isArray(data)) {
+                    tableHeaders = ['id', 'name', 'display_name', 'state', 'service', 'policy_mode', 'privileged'];
+                    formattedHtml = createTableHtml(data, tableHeaders);
+                }
+                else if (key.startsWith('/v1/policy/rule') && Array.isArray(data)) {
+                    tableHeaders = ['id', 'from', 'to', 'applications', 'action', 'priority'];
+                    formattedHtml = createTableHtml(data, tableHeaders);
+                }
+                else if (key.startsWith('/v1/log/') && Array.isArray(data)) {
+                    tableHeaders = ['id', 'level', 'name', 'cluster_name', 'reported_at', 'message'];
+                    formattedHtml = createTableHtml(data, tableHeaders);
+                }
+                else if (key.startsWith('/v1/user') && Array.isArray(data)) {
+                    tableHeaders = ['username', 'role', 'email', 'last_login_at'];
+                    formattedHtml = createTableHtml(data, tableHeaders);
+                }
+                else if (key === '/v1/group' && Array.isArray(data)) {
+                    tableHeaders = ['name', 'domain', 'policy_profile_mode_display', 'type'];
+                    formattedHtml = createTableHtml(data, tableHeaders);
+                }
+                else if (key === '/v1/scan/platform' && Array.isArray(data)) { // New Platforms handling
+                    tableHeaders = ['platform', 'version', 'status', 'high', 'medium', 'scanned_at'];
+                    formattedHtml = createTableHtml(data, tableHeaders);
+                }
+                else if (key === '/v1/domain' && Array.isArray(data)) { // Namespaces handling
+                    tableHeaders = ['name', 'workloads', 'running_workloads', 'running_pods', 'services'];
+                    // Pass displayDomainLabels as the row click handler
+                    formattedHtml = createTableHtml(data, tableHeaders, displayDomainLabels);
+                }
+                else {
+                    formattedHtml = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+
+                contentDisplay.innerHTML = formattedHtml;
+                hideLoading();
+
+                // Attach event listeners to rows if a handler was provided
+                if (key === '/v1/domain') {
+                    document.querySelectorAll('#content-display table tbody tr.clickable-row').forEach(row => {
+                        row.addEventListener('click', (event) => {
+                            const itemData = JSON.parse(event.currentTarget.dataset.item);
+                            displayDomainLabels(itemData);
+                        });
+                    });
+                }
+
+
+            } catch (error) {
+                console.error('Failed to fetch data for key:', key, error);
+                showError('Failed to load initial data.'); // Simplified error message
+                // No need to set keyList.innerHTML here as it's not directly populated by fetchAllKeys
+            }
+        };
+
+        // This function is no longer used for populating the main navigation list
+        // It's kept for the top search bar's filtering of internal API keys.
+        const populateKeys = (keysToDisplay) => {
+            // This function's original purpose was to populate the sidebar.
+            // With the new button-based navigation, this part is less relevant for direct display.
+            // However, the `allKeys` array is still populated for the global search input.
+            // No direct DOM manipulation of `keyList` is needed here for the new navigation.
+        };
+
+        const filterKeys = () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            // This still filters the internal `allKeys` array, but doesn't directly affect the new button navigation.
+            // If a search result should highlight a button, more complex logic would be needed.
+            // For now, it's a global search over all raw API keys.
+            const filtered = allKeys.filter(key => key.toLowerCase().includes(searchTerm));
+            // You could potentially display these filtered keys in a temporary search results area
+            // or use them to highlight relevant main navigation items.
+            console.log("Filtered API keys (global search):", filtered);
+        };
+
+        // Debounce function for group and namespace filters
+        const debounceGroupFilters = () => {
+            clearTimeout(groupFilterTimeout);
+            groupFilterTimeout = setTimeout(() => {
+                if (currentSelectedKey === '/v1/group' || currentSelectedKey === '/v1/domain') {
+                    const filters = {
+                        domain: filterDomainInput.value.trim()
+                    };
+                    fetchAndDisplayData(currentSelectedKey, filters);
+                }
+            }, 300); // 300ms debounce time
+        };
+
+        // Event Listeners for new navigation buttons
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboardOverviewBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveNavItem('dashboard-overview-btn');
+                fetchAndDisplayData(e.target.dataset.apiKey); // Use data-api-key
+            });
+
+            groupsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveNavItem('groups-btn');
+                fetchAndDisplayData(e.target.dataset.apiKey); // Use data-api-key
+            });
+
+            // New Assets Buttons Event Listeners
+            platformsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveNavItem('platforms-btn');
+                fetchAndDisplayData(e.target.dataset.apiKey);
+            });
+            namespacesBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveNavItem('namespaces-btn');
+                fetchAndDisplayData(e.target.dataset.apiKey);
+            });
+            nodesBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveNavItem('nodes-btn');
+                fetchAndDisplayData(e.target.dataset.apiKey);
+            });
+            containersBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveNavItem('containers-btn');
+                fetchAndDisplayData(e.target.dataset.apiKey);
+            });
+            registriesBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveNavItem('registries-btn');
+                fetchAndDisplayData(e.target.dataset.apiKey);
+            });
+            sigstoreVerifiersBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveNavItem('sigstore-verifiers-btn');
+                fetchAndDisplayData(e.target.dataset.apiKey);
+            });
+            systemComponentsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveNavItem('system-components-btn');
+                fetchAndDisplayData(e.target.dataset.apiKey);
+            });
+
+
+            // Initial load of all keys (for global search) and set default view
+            const fetchAllKeysAndSetDefaultView = async () => {
+                try {
+                    const response = await fetch('/api/keys'); // Changed back to relative URL
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    allKeys = await response.json(); // Populates allKeys for the global search
+
+                    // Set default view to Dashboard Overview
+                    setActiveNavItem('dashboard-overview-btn');
+                    fetchAndDisplayData(dashboardOverviewBtn.dataset.apiKey); // Use data-api-key
+
+                } catch (error) {
+                    console.error('Failed to fetch keys or set default view:', error);
+                    showError('Failed to load initial data.');
+                }
+            };
+
+            fetchAllKeysAndSetDefaultView();
+        });
+    </script>
+</body>
+</html>
